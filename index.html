@@ -65,6 +65,8 @@
   .field .suffix{color:var(--muted); font-size:.82rem; padding:0 5px;}
   input[type="number"],input[type="text"],input[type="date"],input[type="email"]{background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 9px; font-size:.88rem; outline:none; transition:border-color .12s, box-shadow .12s; font-family:inherit;}
   input[type="number"]{width:136px; text-align:right; font-variant-numeric:tabular-nums;}
+  select{background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 9px; font-size:.85rem; font-family:inherit; outline:none; cursor:pointer;}
+  select:focus{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent);}
   input:focus,textarea:focus{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent);}
   input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   input[type=number]{-moz-appearance:textfield;}
@@ -150,7 +152,7 @@
   @media print{
     .no-print{display:none !important;}
     body{background:#fff; color:#000; display:block;}
-    .print-sheet{display:block !important; color:#000; font-size:12px;}
+    .print-sheet{display:block !important; color:#000; font-size:12px; padding-bottom:16mm;}
     .print-sheet .p-head{display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:12px; gap:16px;}
     .print-sheet .p-emisor{display:flex; flex-direction:column; gap:4px;}
     .print-sheet .p-logo{height:44px; max-width:230px; object-fit:contain; object-position:left;}
@@ -182,7 +184,7 @@
     .print-sheet .p-foto-strip img{width:78px; height:56px; object-fit:cover; border-radius:4px; border:1px solid #ccc;}
     .print-sheet .p-validez{display:inline-block; background:#000; color:#fff; font-weight:700; padding:2px 10px; border-radius:3px; font-size:12px;}
     .print-sheet .p-nota{font-size:11px; color:#333; margin-top:8px;}
-    .print-sheet .p-foot{margin-top:20px; border-top:1px solid #ccc; padding-top:8px; font-size:10px; color:#777; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+    .print-sheet .p-foot{position:fixed; left:0; right:0; bottom:0; border-top:1px solid #ccc; padding-top:6px; padding-bottom:2px; font-size:10px; color:#777; display:flex; justify-content:space-between; align-items:center; gap:10px; background:#fff;}
     .print-sheet .p-foot img{height:15px; opacity:.85;}
     @page{margin:14mm;}
   }
@@ -264,6 +266,8 @@
         <div class="row"><label>Detalle de Portes<span class="hint">Sin IVA</span></label><div class="field"><input id="portes" type="number" step="0.01" value="6814.41" /></div></div>
         <div class="row"><label>Costo Importadora</label><div class="field"><input id="costoImp" type="number" step="0.01" value="5000" /></div></div>
         <div class="row"><label>Otros Costos Adicionales</label><div class="field"><input id="otros" type="number" step="0.01" value="0" /></div></div>
+        <div class="row"><label>IMPVAT / otro costo fijo<span class="hint">Impuesto o cargo adicional (Bs)</span></label><div class="field"><input id="impvat" type="number" step="0.01" value="0" /></div></div>
+        <div class="row"><label>¿IMPVAT con factura (IVA)?<span class="hint">Sí → 87% gasto + 13% crédito fiscal · No → 100% al costo</span></label><div class="field"><select id="impvatIva"><option value="no">No (sin factura)</option><option value="si">Sí (con factura)</option></select></div></div>
         <div class="row highlight"><label>Margen deseado (neto)<span class="hint">Utilidad neta sobre el precio</span></label><div class="field"><input id="margen" type="number" step="0.1" value="10" /><span class="suffix">%</span></div></div>
         <div class="subhead">Contabilidad — base neta e IVA (crédito fiscal)</div>
         <div class="row"><label>CIF (BOB)<span class="badge-neto"> · calc.</span></label><div class="out" id="o_cifBob">—</div></div>
@@ -445,9 +449,9 @@ function guardarConfig(){
 function cargarLogoEmpresa(ev){ const f=ev.target.files[0]; if(!f) return; resizeImage(f,460,0.85).then(d=>{ if(!d){ toast('No se pudo leer la imagen'); return; } cfg.logo=d; const ok=sSet(KEY_CFG,JSON.stringify(cfg)); aplicarConfigUI(); toast(ok?'Logo cargado':'Logo cargado (sin espacio para guardarlo)'); ev.target.value=''; }); }
 function quitarLogoEmpresa(){ cfg.logo=''; sSet(KEY_CFG,JSON.stringify(cfg)); aplicarConfigUI(); toast('Logo por defecto restaurado'); }
 
-const NUM_INPUTS=['tc','cifUsd','ivaAduanaPct','ice','portes','costoImp','otros','margen'];
+const NUM_INPUTS=['tc','cifUsd','ivaAduanaPct','ice','portes','costoImp','otros','impvat','margen'];
 const VEH_TXT=['cliente','marca','modelo','version','tipo','anio','color','condicion','placa','motor','potencia','combustible','transmision','traccion','puertas','pasajeros','kilometraje','procedencia','garantia','entrega','chasis','equipamiento','comentarios'];
-const EJEMPLO={tc:6.96, cifUsd:51576.6, ivaAduanaPct:14.94, ice:0, portes:6814.41, costoImp:5000, otros:0, margen:10};
+const EJEMPLO={tc:6.96, cifUsd:51576.6, ivaAduanaPct:14.94, ice:0, portes:6814.41, costoImp:5000, otros:0, impvat:0, margen:10};
 let editandoId=null, fotosActuales=[];
 function num(id){ const v=parseFloat(document.getElementById(id).value); return isNaN(v)?0:v; }
 function val(id){ const el=document.getElementById(id); return el?el.value.trim():''; }
@@ -456,12 +460,17 @@ function set(id,txt){ const el=document.getElementById(id); if(el) el.textConten
 function calcularNumeros(){
   const tc=num('tc'), cifUsd=num('cifUsd'), ivaAduanaPct=num('ivaAduanaPct');
   const ice=num('ice'), portes=num('portes'), costoImp=num('costoImp'), otros=num('otros'), margen=num('margen')/100;
+  const impvat=num('impvat');
+  const impvatEl=document.getElementById('impvatIva'); const impvatConIva = impvatEl && impvatEl.value==='si';
+  // IMPVAT / costo fijo: sin factura => 100% al costo; con factura => 87% gasto (al costo) + 13% crédito fiscal
+  const impvatNeto = impvatConIva ? impvat*0.87 : impvat;
+  const impvatCredito = impvatConIva ? impvat*0.13 : 0;
   const cifBob=cifUsd*tc, ivaAduana=cifBob*ivaAduanaPct/100;
-  const costoImport=cifBob+ivaAduana+ice+portes+costoImp+otros;
+  const costoImport=cifBob+ivaAduana+ice+portes+costoImp+otros+impvat;
   const facturaCompra=cifBob+ivaAduana;
   const netFactura=facturaCompra*0.87, netImp=costoImp*0.87, netPortes=portes, netOtros=otros*0.87;
-  const costoNeto=netFactura+netImp+netPortes+netOtros;
-  const creditoFiscal=(facturaCompra-netFactura)+(costoImp-netImp)+0+(otros-netOtros);
+  const costoNeto=netFactura+netImp+netPortes+netOtros+impvatNeto;
+  const creditoFiscal=(facturaCompra-netFactura)+(costoImp-netImp)+0+(otros-netOtros)+impvatCredito;
   const denom=0.87 - IT - margen/(1-IUE);
   const precioVenta=denom>0 ? costoNeto/denom : NaN, precioVentaUsd=tc>0 ? precioVenta/tc : NaN;
   const ivaDF=precioVenta*IVA, it=precioVenta*IT, utilBruta=precioVenta-ivaDF-costoNeto-it, iue=utilBruta*IUE, utilNeta=utilBruta-iue, margenReal=utilNeta/precioVenta;
@@ -501,7 +510,7 @@ function reunirRegistro(){
   const r=calcularNumeros(); const pf=precioFacturado(r);
   const veh={fecha:val('v_fecha')}; VEH_TXT.forEach(k=> veh[k]=val('v_'+k));
   return { id: editandoId || ('id'+Date.now()+Math.floor(Math.random()*1000)), nro: val('v_nro'), createdAt:new Date().toISOString(),
-    vehiculo: veh, fotos: fotosActuales.slice(), inputs: Object.fromEntries(NUM_INPUTS.map(k=>[k,num(k)])),
+    vehiculo: veh, fotos: fotosActuales.slice(), inputs: Object.assign(Object.fromEntries(NUM_INPUTS.map(k=>[k,num(k)])), {impvatIva: document.getElementById('impvatIva').value}),
     comercial: {precioLista: document.getElementById('p_lista').value.trim()===''?null:num('p_lista'), descuento:num('p_descuento'), validez:parseInt(document.getElementById('p_validez').value||cfg.validez||30,10), precioFacturado:pf.facturado}, r };
 }
 function guardar(){
@@ -514,7 +523,8 @@ function nuevo(){
   editandoId=null; fotosActuales=[]; renderFotos();
   document.getElementById('v_nro').value=proximoNro(); document.getElementById('v_fecha').value=hoyISO();
   VEH_TXT.forEach(k=> document.getElementById('v_'+k).value='');
-  ['cifUsd','portes','costoImp','ice','otros'].forEach(k=> document.getElementById(k).value='');
+  ['cifUsd','portes','costoImp','ice','otros','impvat'].forEach(k=> document.getElementById(k).value='');
+  document.getElementById('impvatIva').value='no';
   document.getElementById('tc').value=EJEMPLO.tc; document.getElementById('ivaAduanaPct').value=EJEMPLO.ivaAduanaPct; document.getElementById('margen').value=EJEMPLO.margen;
   document.getElementById('p_lista').value=''; document.getElementById('p_descuento').value='0';
   const vd=document.getElementById('p_validez'); vd.value=cfg.validez||30; delete vd.dataset.touched;
@@ -549,6 +559,7 @@ function cargarEnFormulario(reg){
   document.getElementById('v_nro').value=reg.nro||''; const v=reg.vehiculo||{}; document.getElementById('v_fecha').value=v.fecha||'';
   VEH_TXT.forEach(k=>{ const el=document.getElementById('v_'+k); if(el) el.value=v[k]||''; });
   NUM_INPUTS.forEach(k=> document.getElementById(k).value=(reg.inputs&&reg.inputs[k]!=null)?reg.inputs[k]:0);
+  document.getElementById('impvatIva').value=(reg.inputs&&reg.inputs.impvatIva)||'no';
   fotosActuales=(reg.fotos||[]).slice(); renderFotos();
   const com=reg.comercial||{}; document.getElementById('p_lista').value=(com.precioLista!=null?com.precioLista:''); document.getElementById('p_descuento').value=(com.descuento!=null?com.descuento:0);
   const vd=document.getElementById('p_validez'); vd.value=com.validez||cfg.validez||30; vd.dataset.touched='1'; calcular();
@@ -616,6 +627,7 @@ function construirCalculo(reg){
     <div class="p-cols">
       <div class="p-col"><div class="p-sect"><h3>Costos de importación</h3><table>
         ${fila('CIF (USD)',usd(reg.inputs.cifUsd||0))}${fila('CIF (BOB)',money(r.cifBob))}${fila('IVA Aduana',money(r.ivaAduana))}
+        ${(reg.inputs.impvat||0)>0?fila('IMPVAT / costo fijo'+(reg.inputs.impvatIva==='si'?' (c/factura)':''),money(reg.inputs.impvat)):''}
         ${fila('Costo Total Importación',money(r.costoImport))}${fila('Costo Neto (base gravada)',money(r.costoNeto))}${fila('Crédito Fiscal (IVA)',money(r.creditoFiscal))}
       </table></div></div>
       <div class="p-col"><div class="p-sect"><h3>Impuestos y utilidad</h3><table>
@@ -640,6 +652,7 @@ function hideToast(){ document.getElementById('toast').classList.remove('show');
 
 NUM_INPUTS.forEach(id => document.getElementById(id).addEventListener('input', calcular));
 ['p_lista','p_descuento'].forEach(id => document.getElementById(id).addEventListener('input', calcular));
+document.getElementById('impvatIva').addEventListener('change', calcular);
 document.getElementById('p_validez').addEventListener('input', e=>{ e.target.dataset.touched='1'; });
 document.getElementById('v_fecha').value=hoyISO();
 document.getElementById('v_nro').value=proximoNro();
