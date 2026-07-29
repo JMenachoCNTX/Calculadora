@@ -1,12 +1,13 @@
-# NUMMEROS by Contax — Calculadora de Precio de Venta de Vehículos 🇧🇴
+# Calculadora de Precio de Venta de Vehículos 🇧🇴
 
-Calculadora web para determinar el **precio final de venta de vehículos importados en Bolivia**, incluyendo todos los impuestos (IVA, IT e IUE), de modo que quede el **margen neto** deseado.
+Sistema web para determinar el **precio final de venta de vehículos importados en Bolivia**, incluyendo todos los impuestos (IVA, IT e IUE), de modo que quede el **margen neto** deseado; con datos y fotos del vehículo, historial/inventario, **cálculo interno** para el personal y **proforma** para el cliente.
 
-Funciona 100 % en el navegador, sin servidores ni bases de datos: solo abrís la página, ingresás los datos y ves los resultados en vivo. Ideal para publicar gratis en **GitHub Pages**.
+- **Sistema:** NUMMEROS by Contax (marca del software).
+- **Empresa que importa y vende:** JUNKERS (aparece en los documentos y es configurable).
 
-Con la identidad visual de **NUMMEROS by Contax** (encabezado y pie con el logo, favicon incluido), adaptada automáticamente a modo claro y oscuro.
+Funciona 100 % en el navegador, sin servidores ni bases de datos: los datos se guardan localmente en el dispositivo. Adaptado a modo claro y oscuro.
 
-![Vista previa de la calculadora](assets/vista-previa.png)
+![Vista previa del sistema](assets/vista-previa.png)
 
 ---
 
@@ -48,11 +49,19 @@ A partir del precio obtenido calcula automáticamente:
 
 ## ✨ Funciones
 
-- **Datos del vehículo / cotización:** Nº de cotización correlativo automático (`COT-AAAA-0001`), fecha, cliente, placa, marca, modelo, año, color, chasis/VIN y comentarios.
-- **Historial:** guardá cada cálculo y consultalo cuando quieras. Podés **ver** (recargar en la calculadora), **duplicar**, **imprimir** y **eliminar** (con opción de deshacer). Incluye buscador por placa, modelo, cliente o número.
-- **Guardado local:** el historial se conserva en el navegador (localStorage), así que no se pierde al cerrar la página. Además podés **exportar** e **importar** el historial en un archivo `.json` como respaldo o para pasarlo a otro equipo.
-- **Imprimir / PDF:** genera una cotización con el logo, los datos del vehículo y el desglose de impuestos. Desde el diálogo de impresión del navegador elegí “Guardar como PDF”.
-- **Aviso de margen:** si el margen es demasiado alto para el modelo (denominador negativo), la calculadora te avisa en lugar de mostrar un número inválido.
+- **Datos del vehículo / cotización:** Nº correlativo automático (`COT-AAAA-0001`), fecha, cliente, marca, modelo, versión/grado, tipo, año, color, motor, transmisión, entrega, placa, chasis/VIN y comentarios.
+- **Fotos del vehículo (galería):** subí varias fotos por vehículo; se redimensionan automáticamente para no llenar el navegador. La primera es la principal y aparece en la proforma; en el historial se ve como miniatura (útil como catálogo/inventario).
+- **Dos documentos:**
+  - **🧾 Cálculo interno** (para el personal): costos, impuestos, utilidades y margen, con el aviso "Documento interno — no entregar al cliente".
+  - **📄 Proforma** (para el cliente): estilo cotización comercial — precio de lista, descuento especial, precio facturado, validez de la oferta, qué incluye el precio y fotos. **No** muestra costos ni margen.
+- **Historial / inventario:** guardá cada cálculo y consultalo cuando quieras. Por fila: **Ver**, **Proforma**, **Cálculo**, **Duplicar** y **Eliminar** (con deshacer). Buscador por placa, marca, modelo, cliente o número.
+- **Guardado local:** todo se conserva en el navegador (localStorage), así que no se pierde al cerrar. Podés **exportar** e **importar** el historial en `.json` como respaldo o para pasarlo a otro equipo.
+- **⚙️ Configuración de la empresa (JUNKERS):** logo, nombre/razón social, NIT, dirección, teléfono, y textos de la proforma (presentación, qué incluye, financiamiento, validez por defecto). Aparecen en los documentos.
+- **Precio en USD** referencial y **aviso** si el margen es demasiado alto (evita un precio inválido).
+
+## 🖨️ Imprimir / PDF
+
+Tanto el **cálculo interno** como la **proforma** abren el diálogo de impresión del navegador. Para obtener un PDF, elegí destino **"Guardar como PDF"**.
 
 ### Impuestos aplicados (Bolivia)
 
@@ -106,7 +115,7 @@ Con los valores por defecto (los mismos del Excel original):
 calculadora-precio-vehiculos/
 ├── index.html      # La calculadora (HTML + CSS + JS, con los logos ya incrustados)
 ├── README.md       # Este archivo
-├── LICENSE         # Licencia MIT
+├── LICENSE         # Licencia propietaria (uso interno JUNKERS)
 ├── .gitignore
 └── assets/         # Logos NUMMEROS by Contax (SVG) y vista previa
     ├── nummeros-by-contax-negro.svg
@@ -130,4 +139,4 @@ calculadora-precio-vehiculos/
 
 ## 📄 Licencia
 
-Distribuido bajo la licencia MIT. Ver [`LICENSE`](LICENSE).
+Software **propietario / de uso interno**. © 2026 JUNKERS — Todos los derechos reservados. Sistema desarrollado por NUMMEROS by Contax. Ver [`LICENSE`](LICENSE).
