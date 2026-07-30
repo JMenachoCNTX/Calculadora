@@ -45,11 +45,14 @@ A partir del precio obtenido calcula automáticamente:
 - **IUE** (25 % de la utilidad bruta)
 - **Utilidad Neta** y el **margen real verificado** (que debe coincidir con el margen deseado)
 - **Precio de venta en USD** (referencial, al T.C. ingresado)
-- El **asiento contable** de la venta (Debe / Haber balanceado)
 
 ## ✨ Funciones
 
-- **Datos del vehículo / cotización:** Nº correlativo automático (`COT-AAAA-0001`), fecha, cliente, marca, modelo, versión/grado, tipo, año, color, motor, transmisión, entrega, placa, chasis/VIN y comentarios.
+- **Pantalla de Inicio limpia:** solo el logo de la empresa (JUNKERS por defecto), grande y centrado; adapta su color al tema.
+- **Diseño en blanco y negro** (paleta NUMMEROS), compacto, con **íconos vectoriales** (sin emojis) y **pie de página fijo abajo**, adaptado a celular, tablet y computadora.
+- **Datos del vehículo / cotización:** Nº correlativo automático (`COT-AAAA-0001`), fecha, cliente, marca, modelo, versión/grado, tipo, año, color, condición, placa y chasis/VIN.
+- **Especificaciones técnicas:** motor/cilindrada, potencia, combustible, transmisión, tracción, nº de puertas, pasajeros, kilometraje, procedencia, garantía y entrega.
+- **Equipamiento / accesorios:** lista libre (una por línea) que se muestra en la proforma.
 - **Fotos del vehículo (galería):** subí varias fotos por vehículo; se redimensionan automáticamente para no llenar el navegador. La primera es la principal y aparece en la proforma; en el historial se ve como miniatura (útil como catálogo/inventario).
 - **Dos documentos:**
   - **🧾 Cálculo interno** (para el personal): costos, impuestos, utilidades y margen, con el aviso "Documento interno — no entregar al cliente".
@@ -59,9 +62,15 @@ A partir del precio obtenido calcula automáticamente:
 - **⚙️ Configuración de la empresa (JUNKERS):** logo, nombre/razón social, NIT, dirección, teléfono, y textos de la proforma (presentación, qué incluye, financiamiento, validez por defecto). Aparecen en los documentos.
 - **Precio en USD** referencial y **aviso** si el margen es demasiado alto (evita un precio inválido).
 
+## ☁️ Sincronización en línea (tiempo real)
+
+El sistema puede trabajar **en línea con Firebase (Firestore)**: lo que una persona guarda o edita lo ven las demás **al instante**. Sin sincronizar, funciona igual en modo local (los datos se guardan en el navegador).
+
+Para activarlo, seguí la guía **[`SETUP-FIREBASE.md`](SETUP-FIREBASE.md)** (pasos en la consola de Firebase) y pegá tu configuración en **⚙ Configuración → Sincronización en línea**. El indicador arriba a la derecha muestra **● En línea** cuando está sincronizado. Reglas de Firestore incluidas en `firestore.rules`.
+
 ## 🖨️ Imprimir / PDF
 
-Tanto el **cálculo interno** como la **proforma** abren el diálogo de impresión del navegador. Para obtener un PDF, elegí destino **"Guardar como PDF"**.
+Tanto el **cálculo interno** como la **proforma** abren el diálogo de impresión del navegador. Para obtener un PDF, elegí destino **"Guardar como PDF"**. El pie de página queda al fondo de cada hoja.
 
 ### Impuestos aplicados (Bolivia)
 
@@ -77,9 +86,11 @@ Tanto el **cálculo interno** como la **proforma** abren el diálogo de impresi�
 
 Para evitar que se borren fórmulas por accidente, solo son editables los **datos de entrada**:
 
-**Editables:** T.C., CIF (USD), IVA Aduana (%), ICE, Detalle de Portes, Costo Importadora, Otros Costos y el Margen deseado.
+**Editables:** T.C., CIF (USD), IVA Aduana (%), ICE, Detalle de Portes, Costo Importadora, Otros Costos, IMPVAT / costo fijo (con o sin factura) y el Margen deseado.
 
-**Calculados (solo lectura):** CIF (BOB), IVA Aduana, Costo Total de Importación, Costo Neto, Crédito Fiscal, Precio de Venta, IVA DF, IT, Utilidad Bruta, IUE, Utilidad Neta, margen real y el asiento contable.
+> **IMPVAT / costo fijo adicional:** se suma al costo **C** sin alterar la fórmula del precio. Si eligés *"sin factura"*, el 100 % va al costo; si eligés *"con factura (IVA)"*, el 87 % va al costo (gasto) y el 13 % al crédito fiscal. El margen neto se mantiene exacto.
+
+**Calculados (solo lectura):** CIF (BOB), IVA Aduana, Costo Total de Importación, Costo Neto, Crédito Fiscal, Precio de Venta, IVA DF, IT, Utilidad Bruta, IUE, Utilidad Neta y margen real.
 
 ---
 
@@ -113,14 +124,17 @@ Con los valores por defecto (los mismos del Excel original):
 
 ```
 calculadora-precio-vehiculos/
-├── index.html      # La calculadora (HTML + CSS + JS, con los logos ya incrustados)
-├── README.md       # Este archivo
-├── LICENSE         # Licencia propietaria (uso interno JUNKERS)
+├── index.html          # El sistema completo (HTML + CSS + JS, con los logos incrustados)
+├── README.md           # Este archivo
+├── SETUP-FIREBASE.md   # Guía para activar la sincronización en línea
+├── firestore.rules     # Reglas de seguridad de Firestore
+├── LICENSE             # Licencia propietaria (uso interno)
 ├── .gitignore
 └── assets/         # Logos NUMMEROS by Contax (SVG) y vista previa
     ├── nummeros-by-contax-negro.svg
     ├── nummeros-by-contax-blanco.svg
     ├── nummeros-negro.svg
+    ├── junkers-logo.svg
     ├── nummeros-blanco.svg
     └── vista-previa.png
 ```

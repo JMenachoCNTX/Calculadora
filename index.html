@@ -43,7 +43,12 @@
   .tab.active{background:#fff; color:#000; border-color:#fff;}
   .tab .count{display:inline-block; min-width:18px; padding:0 5px; margin-left:2px; font-size:.7rem; line-height:16px; text-align:center; background:rgba(0,0,0,.14); border-radius:9px;}
   .tab:not(.active) .count{background:rgba(255,255,255,.16); color:#fff;}
-  @media (max-width:640px){ .brandbar .divider,.brandbar .empresa{display:none} }
+  .fbchip{align-self:center; margin-left:auto; font-size:.7rem; color:#9a9aa2; border:1px solid rgba(255,255,255,.16); border-radius:20px; padding:3px 10px; white-space:nowrap;}
+  .fbchip.ok{color:#fff; border-color:rgba(255,255,255,.5);}
+  .fbchip.err,.fbchip.warn{color:#fff; border-color:rgba(255,255,255,.35);}
+  .fb-estado{font-size:.8rem; color:var(--muted); margin:6px 0; font-weight:600;}
+  .fb-estado.ok,.fb-estado.err,.fb-estado.warn{color:var(--text);}
+  @media (max-width:640px){ .brandbar .divider,.brandbar .empresa{display:none} .fbchip{margin-left:0} }
 
   .wrap{max-width:1080px; width:100%; margin:0 auto; padding:16px 14px 32px; flex:1 0 auto;}
   .intro{color:var(--muted); font-size:.85rem; max-width:82ch; margin:0 0 14px;}
@@ -203,6 +208,7 @@
       <button class="tab" id="tab-calc" onclick="mostrarTab('calc')">Cotización</button>
       <button class="tab" id="tab-hist" onclick="mostrarTab('hist')">Historial <span class="count" id="histCount">0</span></button>
       <button class="tab" id="tab-cfg" onclick="mostrarTab('cfg')"><span data-ico="gear"></span> Configuración</button>
+      <span class="fbchip" id="fbChip">○ Local</span>
     </div>
   </header>
 
@@ -366,6 +372,16 @@
       <div class="vfield" style="margin-bottom:10px;"><label>¿Qué incluye el precio?</label><textarea id="cfg_incluye" placeholder="El precio de esta cotización incluye placas, registros definitivos y SOAT."></textarea></div>
       <div class="vfield" style="margin-bottom:10px;"><label>Financiamiento (opcional)</label><textarea id="cfg_financiamiento" placeholder="Puede adquirir el vehículo al contado o mediante financiamiento..."></textarea></div>
       <div class="toolbar"><button class="btn solid" onclick="guardarConfig()"><span data-ico="save"></span> Guardar configuración</button></div>
+
+      <div class="subhead" style="margin-top:18px;">Sincronización en línea (Firebase)</div>
+      <p class="intro" style="margin:0 0 8px">Conectá tu proyecto de Firebase para que <strong>todos vean los cambios en tiempo real</strong>. Los pasos de la consola de Firebase están en <strong>SETUP-FIREBASE.md</strong> (dentro del proyecto). Pegá abajo el objeto <em>firebaseConfig</em> que te da Firebase.</p>
+      <div class="vfield" style="margin-bottom:8px;"><label>Configuración de Firebase (objeto firebaseConfig)</label><textarea id="fb_config" style="min-height:120px; font-family:ui-monospace,Menlo,monospace; font-size:.8rem;" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "...", "storageBucket": "...", "messagingSenderId": "...", "appId": "..." }'></textarea></div>
+      <div class="fb-estado" id="fbEstado">Modo local (sin sincronización).</div>
+      <div class="toolbar" style="margin-top:2px;">
+        <button class="btn solid" onclick="conectarFirebase()"><span data-ico="upload"></span> Conectar y sincronizar</button>
+        <button class="btn outline" onclick="desconectarFirebase()"><span data-ico="trash"></span> Desconectar</button>
+      </div>
+      <div class="note">Con esta opción cualquiera que tenga el enlace del sistema puede ver y editar (acceso sin contraseña). Mantené el enlace solo entre tu equipo. Los datos siguen guardándose también localmente como respaldo.</div>
     </section>
   </div>
 
@@ -428,26 +444,31 @@ let cfg = cargarConfig();
 function cargarConfig(){ try{ return Object.assign({}, CFG_DEF, JSON.parse(sGet(KEY_CFG)||'{}')); }catch(e){ return Object.assign({}, CFG_DEF); } }
 function logoMarkupScreen(){ return cfg.logo ? `<img src="${cfg.logo}" alt="${esc(cfg.empresa)}">` : DEFAULT_LOGO; }
 function logoMarkupDoc(){ return cfg.logo ? `<img class="p-logo" src="${cfg.logo}" alt="${esc(cfg.empresa)}">` : `<div class="p-logo-svg">${DEFAULT_LOGO}</div>`; }
+function updateBrandUI(){
+  document.getElementById('cfgLogoPrev').innerHTML = logoMarkupScreen();
+  document.getElementById('inicioLogo').innerHTML = logoMarkupScreen();
+  document.getElementById('empresaNom').textContent=cfg.empresa||'JUNKERS';
+  document.getElementById('footEmpresa').textContent=cfg.empresa||'JUNKERS';
+}
 function aplicarConfigUI(){
   const s=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
   s('cfg_empresa',cfg.empresa||''); s('cfg_nit',cfg.nit||''); s('cfg_dir',cfg.dir||''); s('cfg_tel',cfg.tel||'');
   s('cfg_web',cfg.web||''); s('cfg_validez',cfg.validez||30); s('cfg_prefijo',cfg.prefijo||'COT');
   s('cfg_intro',cfg.intro||''); s('cfg_incluye',cfg.incluye||''); s('cfg_financiamiento',cfg.financiamiento||'');
-  document.getElementById('cfgLogoPrev').innerHTML = logoMarkupScreen();
-  document.getElementById('inicioLogo').innerHTML = logoMarkupScreen();
-  document.getElementById('empresaNom').textContent=cfg.empresa||'JUNKERS';
-  document.getElementById('footEmpresa').textContent=cfg.empresa||'JUNKERS';
+  updateBrandUI();
+  const fbc=document.getElementById('fb_config'); if(fbc && !fbc.value.trim()){ const raw=sGet(KEY_FB); if(raw){ try{ fbc.value=JSON.stringify(JSON.parse(raw),null,2); }catch(e){ fbc.value=raw; } } }
   const vd=document.getElementById('p_validez'); if(vd && !vd.dataset.touched) vd.value=cfg.validez||30;
 }
 function guardarConfig(){
   cfg.empresa=val('cfg_empresa')||'JUNKERS'; cfg.nit=val('cfg_nit'); cfg.dir=val('cfg_dir'); cfg.tel=val('cfg_tel');
   cfg.web=val('cfg_web'); cfg.validez=parseInt(document.getElementById('cfg_validez').value||'30',10);
   cfg.prefijo=(val('cfg_prefijo')||'COT').toUpperCase(); cfg.intro=val('cfg_intro'); cfg.incluye=val('cfg_incluye'); cfg.financiamiento=val('cfg_financiamiento');
-  const ok=sSet(KEY_CFG, JSON.stringify(cfg)); aplicarConfigUI(); document.getElementById('v_nro').value=proximoNro();
+  const ok=sSet(KEY_CFG, JSON.stringify(cfg)); updateBrandUI(); document.getElementById('v_nro').value=proximoNro();
+  if(fb.db) fb.db.doc('config/empresa').set(cfg).catch(()=>{});
   toast(ok?'Configuración guardada':'Guardado sin espacio: usá un logo más liviano');
 }
-function cargarLogoEmpresa(ev){ const f=ev.target.files[0]; if(!f) return; resizeImage(f,460,0.85).then(d=>{ if(!d){ toast('No se pudo leer la imagen'); return; } cfg.logo=d; const ok=sSet(KEY_CFG,JSON.stringify(cfg)); aplicarConfigUI(); toast(ok?'Logo cargado':'Logo cargado (sin espacio para guardarlo)'); ev.target.value=''; }); }
-function quitarLogoEmpresa(){ cfg.logo=''; sSet(KEY_CFG,JSON.stringify(cfg)); aplicarConfigUI(); toast('Logo por defecto restaurado'); }
+function cargarLogoEmpresa(ev){ const f=ev.target.files[0]; if(!f) return; resizeImage(f,460,0.85).then(d=>{ if(!d){ toast('No se pudo leer la imagen'); return; } cfg.logo=d; const ok=sSet(KEY_CFG,JSON.stringify(cfg)); updateBrandUI(); if(fb.db) fb.db.doc('config/empresa').set(cfg).catch(()=>{}); toast(ok?'Logo cargado':'Logo cargado (sin espacio para guardarlo)'); ev.target.value=''; }); }
+function quitarLogoEmpresa(){ cfg.logo=''; sSet(KEY_CFG,JSON.stringify(cfg)); updateBrandUI(); if(fb.db) fb.db.doc('config/empresa').set(cfg).catch(()=>{}); toast('Logo por defecto restaurado'); }
 
 const NUM_INPUTS=['tc','cifUsd','ivaAduanaPct','ice','portes','costoImp','otros','impvat','margen'];
 const VEH_TXT=['cliente','marca','modelo','version','tipo','anio','color','condicion','placa','motor','potencia','combustible','transmision','traccion','puertas','pasajeros','kilometraje','procedencia','garantia','entrega','chasis','equipamiento','comentarios'];
@@ -497,7 +518,8 @@ function mostrarTab(t){
 }
 
 function hoyISO(){ const d=new Date(); const l=new Date(d.getTime()-d.getTimezoneOffset()*60000); return l.toISOString().slice(0,10); }
-function proximoNro(){ const y=new Date().getFullYear(); const seq=parseInt(sGet(KEY_SEQ)||'0',10)+1; return `${cfg.prefijo||'COT'}-${y}-${String(seq).padStart(4,'0')}`; }
+function maxSeqAnio(y){ let m=0; historial.forEach(r=>{ const mm=/-(\d{4})-(\d+)\s*$/.exec(r.nro||''); if(mm && mm[1]==String(y)) m=Math.max(m, parseInt(mm[2],10)); }); return m; }
+function proximoNro(){ const y=new Date().getFullYear(); const localSeq=parseInt(sGet(KEY_SEQ)||'0',10); const seq=Math.max(localSeq, maxSeqAnio(y))+1; return `${cfg.prefijo||'COT'}-${y}-${String(seq).padStart(4,'0')}`; }
 
 function resizeImage(file, maxW, quality){ return new Promise((res)=>{ const img=new Image();
   img.onload=()=>{ let w=img.width,h=img.height; if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; } const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); try{ res(c.toDataURL('image/jpeg', quality)); }catch(e){ res(null); } };
@@ -516,7 +538,7 @@ function reunirRegistro(){
 function guardar(){
   const reg=reunirRegistro(); const idx=historial.findIndex(x=>x.id===reg.id);
   if(idx>=0){ historial[idx]=reg; } else{ historial.unshift(reg); const s=parseInt(sGet(KEY_SEQ)||'0',10); const m=/(\d+)$/.exec(reg.nro); if(m) sSet(KEY_SEQ,String(Math.max(s,parseInt(m[1],10)))); }
-  editandoId=reg.id; const ok=guardarLista();
+  editandoId=reg.id; const ok=guardarLista(); fbSet(reg);
   toast(ok ? (idx>=0?'Cotización actualizada':'Cotización guardada'):'Sin espacio: exportá el historial y quitá fotos');
 }
 function nuevo(){
@@ -567,8 +589,8 @@ function cargarEnFormulario(reg){
 function verRegistro(id){ const reg=historial.find(x=>x.id===id); if(!reg) return; editandoId=reg.id; cargarEnFormulario(reg); mostrarTab('calc'); }
 function duplicarRegistro(id){ const reg=historial.find(x=>x.id===id); if(!reg) return; editandoId=null; cargarEnFormulario(reg); document.getElementById('v_nro').value=proximoNro(); document.getElementById('v_fecha').value=hoyISO(); mostrarTab('calc'); toast('Copia lista — guardala para agregarla'); }
 let ultimoEliminado=null;
-function eliminarRegistro(id){ const idx=historial.findIndex(x=>x.id===id); if(idx<0) return; ultimoEliminado={reg:historial[idx],idx}; historial.splice(idx,1); guardarLista(); renderHistorial(); toast('Cotización eliminada','Deshacer',()=>{ historial.splice(ultimoEliminado.idx,0,ultimoEliminado.reg); guardarLista(); renderHistorial(); }); }
-function vaciarHistorial(){ if(historial.length===0) return; const copia=historial.slice(); historial=[]; guardarLista(); renderHistorial(); toast('Historial vaciado','Deshacer',()=>{ historial=copia; guardarLista(); renderHistorial(); }); }
+function eliminarRegistro(id){ const idx=historial.findIndex(x=>x.id===id); if(idx<0) return; ultimoEliminado={reg:historial[idx],idx}; historial.splice(idx,1); guardarLista(); renderHistorial(); fbDelete(id); toast('Cotización eliminada','Deshacer',()=>{ historial.splice(ultimoEliminado.idx,0,ultimoEliminado.reg); guardarLista(); renderHistorial(); fbSet(ultimoEliminado.reg); }); }
+function vaciarHistorial(){ if(historial.length===0) return; const copia=historial.slice(); historial=[]; guardarLista(); renderHistorial(); fbDeleteMany(copia); toast('Historial vaciado','Deshacer',()=>{ historial=copia; guardarLista(); renderHistorial(); fbSetMany(copia); }); }
 
 function exportarHistorial(){ const blob=new Blob([JSON.stringify(historial,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='historial-nummeros-'+hoyISO()+'.json'; a.click(); URL.revokeObjectURL(a.href); toast('Historial exportado'); }
 function importarHistorial(ev){ const file=ev.target.files[0]; if(!file) return; const rd=new FileReader(); rd.onload=()=>{ try{ const data=JSON.parse(rd.result); if(!Array.isArray(data)) throw 0; const ids=new Set(historial.map(x=>x.id)); let add=0; data.forEach(reg=>{ if(reg&&reg.id&&!ids.has(reg.id)){ historial.push(reg); add++; } }); historial.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')); guardarLista(); renderHistorial(); toast('Importado: '+add+' nueva(s)'); }catch(e){ toast('Archivo inválido'); } ev.target.value=''; }; rd.readAsText(file); }
@@ -646,6 +668,60 @@ function descargarCalculoActual(){ construirCalculo(reunirRegistro()); }
 function proformaDeRegistro(id){ const reg=historial.find(x=>x.id===id); if(reg) construirProforma(reg); }
 function calculoDeRegistro(id){ const reg=historial.find(x=>x.id===id); if(reg) construirCalculo(reg); }
 
+/* ================= Firebase (sincronización en línea) ================= */
+const KEY_FB='nummeros_firebase_v1';
+let fb={ db:null, ready:false, unsub:[] };
+function fbStatus(msg,cls){
+  const el=document.getElementById('fbEstado'); if(el){ el.textContent=msg; el.className='fb-estado'+(cls?(' '+cls):''); }
+  const chip=document.getElementById('fbChip'); if(chip){ chip.textContent = cls==='ok'?'● En línea': cls==='err'?'● Sin conexión': (/(Conect)/.test(msg)?'● Conectando…':'○ Local'); chip.className='fbchip'+(cls?(' '+cls):''); }
+}
+function evalFbConfig(t){ const m=String(t).match(/\{[\s\S]*\}/); if(!m) throw new Error('sin objeto'); return (new Function('return ('+m[0]+')'))(); }
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('carga '+src)); document.head.appendChild(s); }); }
+let sdkCargado=false;
+async function loadFirebaseSDK(){ if(sdkCargado || (window.firebase&&window.firebase.firestore)){ sdkCargado=true; return; } const base='https://www.gstatic.com/firebasejs/10.12.2/'; await loadScript(base+'firebase-app-compat.js'); await loadScript(base+'firebase-auth-compat.js'); await loadScript(base+'firebase-firestore-compat.js'); sdkCargado=true; }
+function desuscribirFb(){ fb.unsub.forEach(u=>{ try{u();}catch(e){} }); fb.unsub=[]; fb.ready=false; }
+function initFirebase(){
+  const raw=sGet(KEY_FB); if(!raw){ fbStatus('Modo local (sin sincronización).'); return; }
+  let conf; try{ conf=JSON.parse(raw); }catch(e){ fbStatus('Configuración inválida.','err'); return; }
+  fbStatus('Conectando…');
+  loadFirebaseSDK().then(()=>{
+    try{ if(!firebase.apps.length) firebase.initializeApp(conf); }catch(e){ fbStatus('Error al iniciar Firebase: '+e.message,'err'); return; }
+    fb.db=firebase.firestore();
+    firebase.auth().signInAnonymously().then(()=>arrancarSync()).catch(e=>{ fbStatus('Aviso: sin acceso anónimo ('+(e.code||'')+'). Intentando con las reglas actuales…','warn'); arrancarSync(); });
+  }).catch(e=> fbStatus('No se pudo cargar Firebase (¿sin internet o bloqueado?). '+e.message,'err'));
+}
+function arrancarSync(){
+  desuscribirFb();
+  const localBackup=historial.slice(); let primera=true, primeraCfg=true;
+  fb.unsub.push(fb.db.collection('cotizaciones').onSnapshot(snap=>{
+    fb.ready=true; fbStatus('En línea · sincronizado','ok');
+    if(primera && snap.empty && localBackup.length){ primera=false; localBackup.forEach(r=>{ try{ fbPut(r); }catch(e){} }); return; }
+    primera=false;
+    historial = snap.docs.map(d=>d.data()).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    sSet(KEY, JSON.stringify(historial)); actualizarContador();
+    if(!document.getElementById('vista-hist').classList.contains('hidden')) renderHistorial();
+  }, err=> fbStatus('Error de permisos en Firestore: revisá las reglas. ('+(err.code||'')+')','err')));
+  fb.unsub.push(fb.db.doc('config/empresa').onSnapshot(doc=>{
+    if(!doc.exists){ if(primeraCfg && cfg && (cfg.empresa!=='JUNKERS' || cfg.logo || cfg.nit)){ primeraCfg=false; fb.db.doc('config/empresa').set(cfg).catch(()=>{}); } return; }
+    primeraCfg=false; cfg=Object.assign({}, CFG_DEF, doc.data()); sSet(KEY_CFG, JSON.stringify(cfg));
+    if(document.getElementById('vista-cfg').classList.contains('hidden')) aplicarConfigUI(); else updateBrandUI();
+    document.getElementById('v_nro').value=proximoNro();
+  }, err=>{}));
+}
+function fbPut(reg){ if(!fb.db) return Promise.resolve(); let data=reg; try{ if(JSON.stringify(reg).length>950000 && reg.fotos && reg.fotos.length){ data=Object.assign({},reg,{fotos:reg.fotos.slice()}); while(JSON.stringify(data).length>950000 && data.fotos.length) data.fotos.pop(); toast('Aviso: algunas fotos no se sincronizaron por tamaño (límite 1 MB por registro).'); } }catch(e){} return fb.db.collection('cotizaciones').doc(reg.id).set(data); }
+function fbSet(reg){ if(!fb.db) return; fbPut(reg).catch(e=> fbStatus('Error al guardar en línea: '+e.message,'err')); }
+function fbDelete(id){ if(fb.db) fb.db.collection('cotizaciones').doc(id).delete().catch(()=>{}); }
+function fbSetMany(list){ if(fb.db) list.forEach(r=> fbSet(r)); }
+function fbDeleteMany(list){ if(!fb.db) return; try{ const batch=fb.db.batch(); list.slice(0,500).forEach(r=> batch.delete(fb.db.collection('cotizaciones').doc(r.id))); batch.commit().catch(()=>{}); }catch(e){} }
+function conectarFirebase(){
+  const txt=document.getElementById('fb_config').value.trim();
+  if(!txt){ fbStatus('Pegá la configuración de Firebase.','warn'); return; }
+  let conf; try{ conf=evalFbConfig(txt); }catch(e){ fbStatus('No pude leer la configuración. Pegá el objeto firebaseConfig completo.','err'); return; }
+  if(!conf || !conf.projectId){ fbStatus('Falta "projectId" en la configuración.','err'); return; }
+  sSet(KEY_FB, JSON.stringify(conf)); desuscribirFb(); fb.db=null; initFirebase(); toast('Conectando a Firebase…');
+}
+function desconectarFirebase(){ sSet(KEY_FB,''); desuscribirFb(); fb.db=null; historial=cargarHistorial(); actualizarContador(); if(!document.getElementById('vista-hist').classList.contains('hidden')) renderHistorial(); fbStatus('Desconectado (modo local).'); toast('Sincronización desconectada'); }
+
 let toastTimer=null;
 function toast(msg, actionLabel, actionFn){ const t=document.getElementById('toast'), a=document.getElementById('toastAction'); document.getElementById('toastMsg').textContent=msg; a.innerHTML=''; if(actionLabel){ const b=document.createElement('button'); b.textContent=actionLabel; b.onclick=()=>{ hideToast(); actionFn&&actionFn(); }; a.appendChild(b); } t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(hideToast, actionLabel?6000:2600); }
 function hideToast(){ document.getElementById('toast').classList.remove('show'); }
@@ -656,7 +732,7 @@ document.getElementById('impvatIva').addEventListener('change', calcular);
 document.getElementById('p_validez').addEventListener('input', e=>{ e.target.dataset.touched='1'; });
 document.getElementById('v_fecha').value=hoyISO();
 document.getElementById('v_nro').value=proximoNro();
-renderIcons(); aplicarConfigUI(); actualizarContador(); calcular();
+renderIcons(); aplicarConfigUI(); actualizarContador(); calcular(); initFirebase();
 </script>
 </body>
 </html>

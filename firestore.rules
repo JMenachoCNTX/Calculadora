@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Modo "sin login": se usa acceso anónimo (Authentication → Anónimo).
+    // Solo permite leer/escribir a quien está autenticado (el acceso anónimo cuenta),
+    // lo que evita accesos totalmente sueltos a la base de datos.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
